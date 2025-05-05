@@ -1,0 +1,106 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Queijeira {
+  id        String   @id @default(uuid())
+  nome      String
+  ativa     Boolean  @default(true)
+  usuarios  Usuario[]
+  produtores ProdutorLeite[]
+  coletas   ColetaLeite[]
+  precos    PrecoLeite[]
+  despesas  Despesa[]
+  producoes ProducaoQueijo[]
+  tipoDespesa TipoDespesa[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Usuario {
+  id           String    @id @default(uuid())
+  nome         String
+  email        String    @unique
+  senhaHash    String
+  isAdmin      Boolean   @default(false)
+  queijeiraId  String
+  queijeira    Queijeira @relation(fields: [queijeiraId], references: [id])
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+model ProdutorLeite {
+  id          String     @id @default(uuid())
+  nome        String
+  ativo       Boolean    @default(true)
+  queijeiraId String
+  queijeira   Queijeira  @relation(fields: [queijeiraId], references: [id])
+  coletas     ColetaLeite[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
+model ColetaLeite {
+  id            String     @id @default(uuid())
+  data          DateTime
+  litros        Float
+  produtorId    String
+  produtor      ProdutorLeite @relation(fields: [produtorId], references: [id])
+  queijeiraId   String
+  queijeira     Queijeira     @relation(fields: [queijeiraId], references: [id])
+  createdAt     DateTime   @default(now())
+
+  @@unique([data, produtorId]) // Apenas uma coleta por produtor por dia
+}
+
+model PrecoLeite {
+  id            String   @id @default(uuid())
+  dataInicio    DateTime
+  dataFim       DateTime?
+  valorLitro    Float
+  queijeiraId   String
+  queijeira     Queijeira @relation(fields: [queijeiraId], references: [id])
+
+  @@index([queijeiraId])
+}
+
+model TipoDespesa {
+  id          String    @id @default(uuid())
+  nome        String
+  ativo       Boolean   @default(true)
+  queijeiraId String
+  queijeira   Queijeira @relation(fields: [queijeiraId], references: [id])
+  despesas    Despesa[]
+}
+
+model Despesa {
+  id           String      @id @default(uuid())
+  data         DateTime
+  valor        Float
+  descricao    String
+  tipoId       String
+  tipo         TipoDespesa @relation(fields: [tipoId], references: [id])
+  queijeiraId  String
+  queijeira    Queijeira   @relation(fields: [queijeiraId], references: [id])
+}
+
+model ProducaoQueijo {
+  id           String    @id @default(uuid())
+  data         DateTime
+  kgProduzido  Float
+  numPecas     Int
+  queijeiraId  String
+  queijeira    Queijeira @relation(fields: [queijeiraId], references: [id])
+}
